@@ -88,7 +88,19 @@ class DetectionAgent(Agent):
         }
 
     async def execute(self, input_data: Dict, context: Dict) -> Dict[str, Any]:
-        text = input_data.get("text", "")
+        # Be tolerant of input types: accept dicts, plain strings, or dicts with 'data'
+        try:
+            if not isinstance(input_data, dict):
+                text = str(input_data)
+            else:
+                # Prefer 'text', fall back to 'data' or empty string
+                text = input_data.get("text") or input_data.get("data") or ""
+                # If the 'data' value is itself a dict, stringify it
+                if isinstance(text, dict):
+                    text = str(text)
+        except Exception:
+            self.logger.exception("Error normalizing input_data for detection")
+            text = ""
 
         # Run parallel detection methods
         tasks = [
@@ -126,13 +138,17 @@ class DetectionAgent(Agent):
 
     async def _ml_detection(self, text: str) -> Dict:
         await asyncio.sleep(0.2)  # Simulate ML model inference
-        return {
-            "findings": [{
+        # Return a consistent structure: always a dict with a list under 'findings'
+        if len(text) > 50:
+            findings = [{
                 "type": "pii_detected",
                 "method": "ml",
                 "confidence": 0.85
-            }] if len(text) > 50 else {"findings": []}
-        }
+            }]
+        else:
+            findings = []
+
+        return {"findings": findings}
 
     async def _contextual_analysis(self, text: str, context: Dict) -> Dict:
         await asyncio.sleep(0.1)

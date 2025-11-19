@@ -24,6 +24,9 @@ class AgentOrchestrator:
         """Run agents sequentially, passing output to next agent"""
         trace_id = self.tracer.start_trace("sequential_pipeline")
         session = self.session_service.get_session(session_id)
+        # Ensure a session exists for the pipeline
+        if session is None:
+            session = self.session_service.create_session(session_id)
 
         current_data = input_data
         results = []
@@ -55,6 +58,9 @@ class AgentOrchestrator:
         """Run multiple agents in parallel"""
         trace_id = self.tracer.start_trace("parallel_execution")
         session = self.session_service.get_session(session_id)
+        # Ensure a session exists for parallel execution
+        if session is None:
+            session = self.session_service.create_session(session_id)
 
         tasks = []
         for agent in agents:
